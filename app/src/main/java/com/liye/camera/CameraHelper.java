@@ -21,6 +21,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.util.Size;
+import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.widget.Toast;
@@ -42,6 +43,8 @@ public class CameraHelper {
     private ImageReader mImageReader;
     private CameraCaptureSession mCaptureSession;
     private String currentCameraId = "0";
+    private int mSensorOrientation;
+
 
 
     public CameraHelper(Context context,TextureView textureView) {
@@ -72,6 +75,7 @@ public class CameraHelper {
             Toast.makeText(mContext, "open sucessful ", Toast.LENGTH_LONG).show();
             mCameraDevice = camera;
             SurfaceTexture surfcetexture = mTextureView.getSurfaceTexture();
+            surfcetexture.setDefaultBufferSize(1920, 1080);
             Surface surface = new Surface(surfcetexture);
             try {
                 mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
@@ -81,7 +85,7 @@ public class CameraHelper {
 
             mPreviewRequestBuilder.addTarget(surface);
             //大小需要设置
-            mImageReader = ImageReader.newInstance(2560, 1920, ImageFormat.JPEG, 2);
+            mImageReader = ImageReader.newInstance(1920, 1080, ImageFormat.JPEG, 2);
             mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
            // mPreviewRequestBuilder.addTarget(mImageReader.getSurface());
             try {
@@ -142,7 +146,10 @@ public class CameraHelper {
 
 
     private void init() {
-        cameraManager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
+        //第一种
+        //cameraManager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
+        //第二种
+        cameraManager = (CameraManager) mContext.getSystemService(CameraManager.class);
         mBackgroundThread = new HandlerThread("CameraBackground");
         mBackgroundThread.start();
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
@@ -209,12 +216,14 @@ public class CameraHelper {
     public void takePicture(){
         final CaptureRequest.Builder captureBuilder;
         try {
+            mSensorOrientation =  cameraManager.getCameraCharacteristics(currentCameraId).get(CameraCharacteristics.SENSOR_ORIENTATION);
             captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             captureBuilder.addTarget(mImageReader.getSurface());
-
             // Use the same AE and AF modes as the preview.
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            Log.d(TAG, "takePicture: mSensorOrientation " + mSensorOrientation);
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, mSensorOrientation);
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
@@ -230,7 +239,9 @@ public class CameraHelper {
     }
 
     public void releaseCamera(){
-        mCameraDevice.close();
+        if(mCameraDevice != null) {
+            mCameraDevice.close();
+        }
     }
 
     public void  switchCamera(){

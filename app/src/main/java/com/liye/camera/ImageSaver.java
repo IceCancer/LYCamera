@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Environment;
@@ -43,9 +44,6 @@ public class ImageSaver implements Runnable {
             ByteBuffer buffer = mReader.getPlanes()[0].getBuffer();
             byte[] buff = new byte[buffer.remaining()];
             buffer.get(buff);
-            BitmapFactory.Options ontain = new BitmapFactory.Options();
-            ontain.inSampleSize = 100;
-            Bitmap bm = BitmapFactory.decodeByteArray(buff, 0, buff.length, ontain);
             outputStream.write(buff);
             Log.d(TAG, "保存图片完成");
         } catch (FileNotFoundException e) {
